@@ -6,7 +6,7 @@
 /*   By: tmoska <tmoska@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/03/09 11:27:17 by tmoska            #+#    #+#             */
-/*   Updated: 2017/03/25 03:23:36 by tmoska           ###   ########.fr       */
+/*   Updated: 2017/03/28 14:40:03 by tmoska           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ void		build_token_list(t_shell **shell, char **cmds, int *type,\
 	(*shell)->token_count = i;
 }
 
-int			get_tokens(t_shell **shell)
+int			get_tokens(t_shell **shell, int first)
 {
 	t_tkn	*tkns;
 	char	**cmds;
@@ -81,6 +81,6 @@ int			get_tokens(t_shell **shell)
 		(*shell)->tree = tkns;
 		return (1);
 	}
-	scan_heredocs(shell);
+	first ? scan_heredocs(shell) : (0);
 	return (0);
 }

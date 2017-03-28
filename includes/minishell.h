@@ -6,7 +6,7 @@
 /*   By: moska <moska@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/02/08 16:57:49 by moska             #+#    #+#             */
-/*   Updated: 2017/03/27 20:06:32 by tmoska           ###   ########.fr       */
+/*   Updated: 2017/03/28 14:40:17 by tmoska           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -282,7 +282,7 @@ int					tkn_new_to_back(t_tkn **lst, char *data, int type);
 char				**split_command(char *cmd);
 int					if_op_find_priority(char *s);
 int					tokenize(t_shell **shell);
-int					get_tokens(t_shell **shell);
+int					get_tokens(t_shell **shell, int first);
 void				tkn_move_args_to_start(t_tkn **dst, t_tkn **src);
 void				reorganize_tokens(t_shell **shell);
 void				move_pointers(t_tkn *init, t_tkn **start, t_tkn **ptr1, \
@@ -296,6 +296,7 @@ int					is_op(char *c);
 void				add_command(char ***cmds, char *cmd, int *offset, int *len);
 t_tkn				*tkn_pre_last(t_tkn *lst);
 t_tkn				*tkn_search_node(t_tkn *node, char *data);
+t_tkn				*tkn_last(t_tkn *node);
 
 /*
 **	Execution
@@ -315,5 +316,8 @@ int					open_tmp_heredoc(int *fd);
 int					redirection_type(t_tkn *node);
 int					execute_two_left(t_tkn *node, char *out);
 int					fork_error(void);
+
+
+void				print_tokens(t_tkn *tokens);
 
 #endif

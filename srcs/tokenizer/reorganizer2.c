@@ -6,92 +6,112 @@
 /*   By: moska <moska@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/03/16 23:43:13 by moska             #+#    #+#             */
-/*   Updated: 2017/03/20 21:25:26 by tmoska           ###   ########.fr       */
+/*   Updated: 2017/03/28 15:34:48 by tmoska           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-static void		move_node_back(t_tkn **start, t_tkn *ptr1)
+static void	swap_nodes(t_tkn **one, t_tkn **two)
 {
-	t_tkn *tmp;
-	t_tkn *tmp2;
-	t_tkn *tmp3;
+	int		type;
+	char	*data;
 
-	tmp = *start;
-	tmp2 = *start;
-	while (tmp->right != ptr1)
-		tmp = tmp->right;
-	while (tmp2->right->type <= ptr1->type && tmp2->right->type > 0)
-		tmp2 = tmp2->right->right;
-	tmp->right = tmp->right->right->right;
-	tmp3 = tmp2->right;
-	tmp2->right = ptr1;
-	tmp2->right->right->right = tmp3;
+	type = (*one)->type;
+	(*one)->type = (*two)->type;
+	(*two)->type = type;
+	data = (*one)->data;
+	(*one)->data = (*two)->data;
+	(*two)->data = data;
 }
 
-static void		higher_type_node(t_tkn *start, t_tkn **ptr1,\
-	int lower_than, int *post_pipe)
+void		tkns_sort(t_tkn **begin_list)
 {
-	*ptr1 = start->right;
-	while (*ptr1 && (*ptr1)->right && in_range((*ptr1)->type, 1, 3) \
-	&& (*ptr1)->type < lower_than)
-		*ptr1 = (*ptr1)->right->right;
-	*post_pipe = (*ptr1 && (*ptr1)->type == 4);
-}
-
-static void		search_for_new_separator(t_tkn **start, t_tkn **ptr1)
-{
-	while (*start && !in_range((*start)->type, 5, 6))
-		*start = (*start)->right;
-	if (*start && (*start)->right)
-		move_pointers((*start)->right, start, ptr1, NULL);
-	else
-		*start = NULL;
-}
-
-static void		search_for_next_ptr_position(t_tkn *start, t_tkn **ptr1, \
-	int *m_type, int *post_pipe)
-{
-	if (*ptr1 && (*ptr1)->right && (*ptr1)->right->right)
-		*ptr1 = (*ptr1)->right->right;
-	else
-	{
-		*ptr1 = NULL;
-		while (!(*ptr1) && *m_type < 3)
-		{
-			(*m_type)++;
-			higher_type_node(start, ptr1, *m_type, post_pipe);
-		}
-	}
-	*post_pipe = (*ptr1 && (*ptr1)->type == 4);
-}
-
-void			arrange_nodes_in_priority(t_shell **shell)
-{
-	t_tkn	*start;
-	t_tkn	*ptr1;
 	t_tkn	*tmp;
-	int		m_type;
-	int		post_pipe;
+	int		sorted;
 
-	start = (*shell)->tkns;
-	tmp = start;
-	post_pipe = 0;
-	higher_type_node(start, &ptr1, 2, &post_pipe);
-	while (start)
+	if (!(*begin_list))
+		return ;
+	sorted = 0;
+	while (!sorted)
 	{
-		m_type = 2;
-		while (m_type <= 3 && ptr1 && in_range(ptr1->type, 1, 3) && !post_pipe)
+		sorted = 1;
+		tmp = *begin_list;
+		while (tmp->right)
 		{
-			if (ptr1->type < m_type && ptr1->type > 0)
+			if (tmp->type > tmp->right->type)
 			{
-				move_node_back(&start, ptr1);
-				higher_type_node(start, &ptr1, m_type, &post_pipe);
+				sorted = 0;
+				swap_nodes(&tmp, &tmp->right);
 			}
-			search_for_next_ptr_position(start, &ptr1, &m_type, &post_pipe);
+			tmp = tmp->right;
 		}
-		search_for_new_separator(&start, &ptr1);
 	}
-	(*shell)->tkns = tmp;
+}
+
+int			add_op(t_tkn **lst, t_tkn **tkns)
+{
+	char	*tmp;
+
+	if (in_range((*tkns)->type, 3, 6))
+		tkn_new_to_back(lst, (*tkns)->data, (*tkns)->type);
+	else
+	{
+		tmp = ft_str3join((*tkns)->data, " ", (*tkns)->right->data);
+		tkn_new_to_back(lst, tmp, (*tkns)->type);
+		ft_strdel(&tmp);
+	}
+	*tkns = (*tkns)->right;
+	return (1);
+}
+
+void		re_assign_to_tkns(t_shell **shell, t_tkn *sorted)
+{
+	t_tkn	*ptr;
+	char	*res;
+	char	*tmp;
+
+	clean_btree((*shell)->tkns);
+	res = ft_strdup(sorted->data);
+	ptr = sorted->right;
+	while (ptr)
+	{
+		tmp = res;
+		res = ft_str3join(res, " ", ptr->data);
+		ft_strdel(&tmp);
+		ptr = ptr->right;
+	}
+	ft_strdel(&(*shell)->buff);
+	(*shell)->buff = res;
+	get_tokens(shell, 0);
+	clean_btree(sorted);
+}
+
+void		arrange_nodes_in_priority(t_shell **shell)
+{
+	t_tkn	*sorted;
+	t_tkn	*lst_sep;
+	t_tkn	*tkns;
+
+	tkns = (*shell)->tkns;
+	sorted = NULL;
+	while (tkns)
+	{
+		if (tkns->type == 0)
+		{
+			tkn_new_to_back(&sorted, tkns->data, tkns->type);
+			lst_sep = tkn_last(sorted);
+			tkns = tkns->right;
+			(!tkns || in_range(tkns->type, 4, 6)) ? tkns_sort(&lst_sep) : (0);
+			if (tkns && in_range(tkns->type, 4, 6) && add_op(&sorted, &tkns))
+				continue ;
+			if (!tkns)
+				break ;
+		}
+		add_op(&sorted, &tkns);
+		tkns = tkns->right;
+		(!tkns || in_range(tkns->type, 4, 6)) ? tkns_sort(&lst_sep) : (0);
+		(tkns && in_range(tkns->type, 4, 6)) ? add_op(&sorted, &tkns) : (0);
+	}
+	re_assign_to_tkns(shell, sorted);
 }
